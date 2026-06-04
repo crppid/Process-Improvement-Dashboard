@@ -1,0 +1,960 @@
+<!-- Compression Molding Process Improvement Dashboard -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Process Improvement — Compression Molding Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#12161c;
+    --bg2:#171c24;
+    --panel:#1c232d;
+    --panel2:#222b37;
+    --line:#2c3744;
+    --line2:#3a4757;
+    --ink:#e7edf3;
+    --ink-dim:#97a6b6;
+    --ink-faint:#647281;
+    --amber:#ff9d2e;
+    --amber-soft:#ffb45c;
+    --cyan:#46c7d4;
+    --green:#5bd6a0;
+    --red:#ff6b6b;
+    --violet:#a78bfa;
+    --shadow:0 8px 30px rgba(0,0,0,.45);
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+    --sans:'IBM Plex Sans',system-ui,sans-serif;
+    --disp:'Oswald',sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1200px 500px at 80% -10%, rgba(255,157,46,.08), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(70,199,212,.06), transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:14px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 20px 70px}
+
+  /* Header */
+  header.top{
+    display:flex;align-items:flex-end;justify-content:space-between;
+    gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--line);
+    padding-bottom:16px;margin-bottom:18px;
+  }
+  .brand{display:flex;align-items:center;gap:14px}
+  .glyph{
+    width:46px;height:46px;border-radius:10px;flex:0 0 auto;
+    background:linear-gradient(145deg,#2a3340,#1a212b);
+    border:1px solid var(--line2);position:relative;overflow:hidden;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .glyph::before{content:"";position:absolute;inset:9px 9px auto 9px;height:9px;border-radius:3px;
+    background:linear-gradient(90deg,var(--amber),var(--amber-soft));box-shadow:0 0 14px rgba(255,157,46,.55)}
+  .glyph::after{content:"";position:absolute;left:9px;right:9px;bottom:9px;height:16px;border-radius:3px;
+    border:2px solid var(--line2);background:repeating-linear-gradient(90deg,#2a3340 0 4px,#222b37 4px 8px)}
+  .titles h1{
+    font-family:var(--disp);font-weight:600;letter-spacing:.5px;
+    font-size:26px;margin:0;line-height:1;text-transform:uppercase;
+  }
+  .titles h1 b{color:var(--amber)}
+  .titles p{margin:5px 0 0;color:var(--ink-dim);font-size:12.5px;letter-spacing:.3px}
+  .head-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+  button,select,input,textarea{font-family:inherit;font-size:13px;color:var(--ink)}
+  .btn{
+    background:var(--panel2);border:1px solid var(--line2);color:var(--ink);
+    padding:8px 13px;border-radius:8px;cursor:pointer;font-weight:600;
+    display:inline-flex;align-items:center;gap:7px;transition:.15s;letter-spacing:.2px;
+  }
+  .btn:hover{border-color:var(--ink-faint);background:#27313e}
+  .btn.amber{background:linear-gradient(180deg,var(--amber),#f08a1c);color:#1a130a;border-color:#ffae4d}
+  .btn.amber:hover{filter:brightness(1.06)}
+  .btn.ghost{background:transparent}
+  .btn.sm{padding:5px 9px;font-size:12px;border-radius:6px}
+  .btn.danger:hover{border-color:var(--red);color:var(--red)}
+
+  /* KPI strip */
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+  .kpi{
+    background:linear-gradient(180deg,var(--panel),var(--bg2));
+    border:1px solid var(--line);border-radius:12px;padding:14px 15px;position:relative;overflow:hidden;
+  }
+  .kpi .lab{font-size:10.5px;text-transform:uppercase;letter-spacing:1.2px;color:var(--ink-faint);font-weight:600}
+  .kpi .val{font-family:var(--mono);font-size:25px;font-weight:600;margin-top:6px;letter-spacing:-.5px}
+  .kpi .sub{font-size:11px;color:var(--ink-dim);margin-top:3px;font-family:var(--mono)}
+  .kpi .tick{position:absolute;top:0;left:0;width:3px;height:100%}
+  .kpi.k1 .tick{background:var(--amber)} .kpi.k1 .val{color:var(--amber-soft)}
+  .kpi.k2 .tick{background:var(--cyan)} .kpi.k2 .val{color:var(--cyan)}
+  .kpi.k3 .tick{background:var(--green)} .kpi.k3 .val{color:var(--green)}
+  .kpi.k4 .tick{background:var(--violet)} .kpi.k4 .val{color:var(--violet)}
+  .kpi.k5 .tick{background:var(--ink-faint)} .kpi.k5 .val{color:var(--ink)}
+
+  /* Tabs */
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px}
+  .tab{
+    background:none;border:none;color:var(--ink-dim);padding:10px 16px;cursor:pointer;
+    font-family:var(--disp);font-size:15px;text-transform:uppercase;letter-spacing:.7px;font-weight:500;
+    border-bottom:2px solid transparent;margin-bottom:-1px;
+  }
+  .tab.active{color:var(--ink);border-bottom-color:var(--amber)}
+  .tab:hover{color:var(--ink)}
+
+  .panel{
+    background:linear-gradient(180deg,var(--panel),var(--bg2));
+    border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);
+  }
+  .panel-h{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:13px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap;
+  }
+  .panel-h h2{font-family:var(--disp);font-weight:500;text-transform:uppercase;letter-spacing:.7px;font-size:16px;margin:0}
+  .panel-h .hint{font-size:12px;color:var(--ink-faint)}
+
+  /* Form */
+  form.entry{padding:18px}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 16px}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field.span2{grid-column:span 2}
+  .field.span4{grid-column:span 4}
+  label{font-size:10.5px;text-transform:uppercase;letter-spacing:.9px;color:var(--ink-faint);font-weight:600}
+  label .u{color:var(--amber);text-transform:none;letter-spacing:0}
+  input,select,textarea{
+    background:var(--bg);border:1px solid var(--line2);border-radius:8px;padding:9px 10px;
+    width:100%;outline:none;transition:.15s;
+  }
+  input:focus,select:focus,textarea:focus{border-color:var(--amber);box-shadow:0 0 0 3px rgba(255,157,46,.13)}
+  input::placeholder,textarea::placeholder{color:var(--ink-faint)}
+  textarea{resize:vertical;min-height:60px;font-size:13px}
+  .form-foot{display:flex;align-items:center;gap:10px;margin-top:18px;flex-wrap:wrap}
+  .calc{font-family:var(--mono);font-size:12.5px;color:var(--ink-dim);margin-left:auto}
+  .calc b{color:var(--green)}
+  .editing-flag{display:none;align-items:center;gap:7px;color:var(--amber);font-size:12px;font-weight:600}
+  body.is-editing .editing-flag{display:inline-flex}
+
+  /* Filter + table */
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .toolbar input,.toolbar select{width:auto;padding:7px 10px}
+  .search{min-width:180px}
+  .tbl-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  thead th{
+    text-align:left;padding:10px 12px;border-bottom:1px solid var(--line2);
+    font-family:var(--disp);text-transform:uppercase;letter-spacing:.6px;font-weight:500;
+    color:var(--ink-dim);font-size:12px;white-space:nowrap;cursor:pointer;user-select:none;
+  }
+  thead th:hover{color:var(--ink)}
+  thead th .ar{color:var(--amber);font-size:10px}
+  tbody td{padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;font-family:var(--mono)}
+  tbody td.txt{font-family:var(--sans);white-space:normal;max-width:230px;color:var(--ink-dim)}
+  tbody tr:hover{background:rgba(255,255,255,.02)}
+  .pn{font-weight:600;color:var(--ink);font-family:var(--sans)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:600;
+    letter-spacing:.4px;font-family:var(--sans);border:1px solid transparent}
+  .st-Planned{background:rgba(100,114,129,.18);color:#9fb0c0;border-color:#3a4757}
+  .st-Running{background:rgba(70,199,212,.16);color:var(--cyan);border-color:#2f6b73}
+  .st-Validated{background:rgba(91,214,160,.16);color:var(--green);border-color:#2f6b53}
+  .st-Implemented{background:rgba(255,157,46,.16);color:var(--amber-soft);border-color:#7a5320}
+  .st-Rejected{background:rgba(255,107,107,.15);color:var(--red);border-color:#7a3636}
+  .scrap-good{color:var(--green)} .scrap-mid{color:var(--amber-soft)} .scrap-bad{color:var(--red)}
+  .row-actions{display:flex;gap:6px}
+  .icon-btn{background:var(--panel2);border:1px solid var(--line2);color:var(--ink-dim);
+    width:28px;height:28px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+  .icon-btn:hover{color:var(--ink);border-color:var(--ink-faint)}
+  .icon-btn.del:hover{color:var(--red);border-color:var(--red)}
+  .delta{font-size:11px}
+  .delta.up{color:var(--green)} .delta.down{color:var(--red)} .delta.flat{color:var(--ink-faint)}
+
+  /* Cycles editor */
+  .cycles-sec{margin-top:18px;border:1px dashed var(--line2);border-radius:10px;padding:14px;background:rgba(0,0,0,.13)}
+  .cyc-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:11px}
+  .cyc-title{font-family:var(--disp);text-transform:uppercase;letter-spacing:.6px;font-size:14px;color:var(--ink)}
+  .cyc-title small{display:block;font-family:var(--sans);text-transform:none;letter-spacing:0;font-size:11px;color:var(--ink-faint);font-weight:400;margin-top:2px}
+  .cyc-labels,.cyc-row{display:grid;grid-template-columns:42px 1fr 1fr 1fr 1fr 2.6fr 30px;gap:8px;align-items:center}
+  .cyc-labels{margin-bottom:5px}
+  .cyc-labels span{font-size:9.5px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink-faint);font-weight:600;padding-left:2px}
+  .cyc-row{margin-bottom:7px}
+  .cyc-row input{padding:7px 8px;font-size:12.5px}
+  .cyc-n{font-family:var(--mono);font-size:12px;color:var(--amber-soft);font-weight:600;text-align:center}
+  .cyc-del{background:var(--panel2);border:1px solid var(--line2);color:var(--ink-faint);width:28px;height:28px;border-radius:6px;cursor:pointer}
+  .cyc-del:hover{color:var(--red);border-color:var(--red)}
+  .cyc-empty{font-size:12px;color:var(--ink-faint);padding:4px 2px 8px}
+  .cyc-sum{margin-top:4px;font-family:var(--mono);font-size:12px;color:var(--ink-dim);border-top:1px solid var(--line);padding-top:9px}
+  .cyc-sum b{color:var(--amber-soft)}
+  /* expandable detail row */
+  tr.detail-row>td{padding:0;border-bottom:1px solid var(--line2);background:rgba(0,0,0,.18)}
+  .detail-wrap{padding:12px 16px 14px}
+  .detail-wrap h4{font-family:var(--disp);text-transform:uppercase;letter-spacing:.6px;font-size:12px;margin:0 0 8px;color:var(--ink-dim)}
+  table.cyc-tbl{width:100%;font-size:12px;border-collapse:collapse}
+  table.cyc-tbl th{padding:5px 8px;font-size:10px;border-bottom:1px solid var(--line2);text-align:left;color:var(--ink-faint);font-family:var(--disp);letter-spacing:.5px;cursor:default}
+  table.cyc-tbl td{padding:6px 8px;border-bottom:1px solid var(--line);white-space:normal;font-family:var(--mono)}
+  table.cyc-tbl td.cmt{font-family:var(--sans);color:var(--ink-dim)}
+  .exp-btn{cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:5px;color:var(--cyan);font-family:var(--mono);font-weight:600}
+  .exp-btn .chev{transition:.15s;font-size:9px;display:inline-block}
+  .exp-btn.open .chev{transform:rotate(90deg)}
+  .cyc-none{color:var(--ink-faint)}
+
+  .empty{text-align:center;padding:48px 20px;color:var(--ink-faint)}
+  .empty .big{font-family:var(--disp);font-size:18px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:1px}
+
+  /* Analysis */
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .chart-card{padding:16px 18px}
+  .chart-card.full{grid-column:span 2}
+  .chart-card h3{font-family:var(--disp);font-weight:500;text-transform:uppercase;letter-spacing:.6px;
+    font-size:14px;margin:0 0 12px;color:var(--ink)}
+  .chart-box{position:relative;height:260px}
+  .chart-box.tall{height:300px}
+  .insights{padding:16px 18px;font-size:13px;line-height:1.7}
+  .insights ul{margin:8px 0 0;padding-left:18px;color:var(--ink-dim)}
+  .insights li{margin-bottom:7px}
+  .insights b{color:var(--ink)}
+  .ins-amber{color:var(--amber-soft)} .ins-green{color:var(--green)} .ins-red{color:var(--red)}
+
+  .loading{padding:60px;text-align:center;color:var(--ink-faint);font-family:var(--mono)}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--panel2);border:1px solid var(--line2);color:var(--ink);padding:11px 18px;border-radius:10px;
+    box-shadow:var(--shadow);opacity:0;transition:.25s;font-size:13px;z-index:50;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .hide{display:none !important}
+
+  @media(max-width:880px){
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .grid{grid-template-columns:repeat(2,1fr)}
+    .field.span2,.field.span4{grid-column:span 2}
+    .charts{grid-template-columns:1fr}
+    .chart-card.full{grid-column:span 1}
+  }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="glyph"></div>
+      <div class="titles">
+        <h1>Process&nbsp;Improvement <b>·</b> Compression&nbsp;Log</h1>
+        <p>Compression molding · rubber parts · trial &amp; improvement tracker</p>
+      </div>
+    </div>
+    <div class="head-actions">
+      <button class="btn ghost sm" id="exportBtn">⭳ Export CSV</button>
+      <button class="btn ghost sm danger" id="resetBtn">⟲ Reset data</button>
+      <button class="btn amber" id="newBtn">+ New trial</button>
+    </div>
+  </header>
+
+  <div id="app"><div class="loading">⟳ Loading saved trials…</div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ Constants ============ */
+const STORE_KEY = 'cmpr-trials:v1';
+const DEFECTS = ["Flash / excess","Undercure / soft","Overcure / scorch",
+  "Blisters / porosity","Contamination","Dimensional OOS","Bonding failure",
+  "Surface defect","Tear on demold","Torn","Other"];
+const STATUSES = ["Planned","Running","Validated","Implemented","Rejected"];
+const DEFECT_COLORS = ["#ff9d2e","#46c7d4","#5bd6a0","#a78bfa","#ff6b6b","#ffb45c","#7ec8ff",
+  "#f78fb3","#9bd65b","#d4a046","#6fd4c7","#c77eff","#8a99a8"];
+
+/* ============ State ============ */
+let trials = [];
+let editingId = null;
+let sortKey = 'date', sortDir = -1;
+let filterPart = '', filterStatus = '', search = '';
+let charts = {};
+let cycleDraft = [];        // per-cycle rows in the open form
+let expanded = new Set();   // trial ids whose cycle detail is open
+
+/* ============ Supabase backend ============ */
+/* ▼▼▼ FILL THESE IN for a shared team deployment ▼▼▼
+   Get them from your Supabase project → Settings → API.
+   The "anon" / "publishable" key is safe to put in the browser. */
+const SUPABASE_URL = "https://wxmwbvbxshzdbfescgmm.supabase.co";   // base project URL
+const SUPABASE_KEY = "sb_publishable_V5zSGDysR1aNHLzO5vNnhw_FWrhbkr0";   // publishable key (safe in browser)
+/* ▲▲▲ leave blank to enter them on-screen instead (saved in this browser) ▲▲▲ */
+
+const TABLE = "trials";
+let db = null;
+
+function getCreds(){
+  return {
+    url: SUPABASE_URL || localStorage.getItem('sb_url') || '',
+    key: SUPABASE_KEY || localStorage.getItem('sb_key') || ''
+  };
+}
+function initClient(){
+  const { url, key } = getCreds();
+  if(!url || !key || !window.supabase) return false;
+  try{ db = window.supabase.createClient(url, key); return true; }
+  catch(e){ console.error(e); return false; }
+}
+
+async function loadTrials(){
+  try{
+    const { data, error } = await db.from(TABLE).select('id,data').order('updated_at',{ascending:true});
+    if(error) throw error;
+    trials = (data||[]).map(r=>r.data).filter(Boolean);
+  }catch(e){ trials=[]; toast('⚠ Could not load from Supabase'); console.error(e); }
+}
+async function upsertTrial(t){
+  try{
+    const { error } = await db.from(TABLE).upsert({ id:t.id, data:t, updated_at:new Date().toISOString() });
+    if(error) throw error;
+  }catch(e){ toast('⚠ Save failed — check table & policy'); console.error(e); }
+}
+async function deleteTrial(id){
+  try{
+    const { error } = await db.from(TABLE).delete().eq('id', id);
+    if(error) throw error;
+  }catch(e){ toast('⚠ Delete failed'); console.error(e); }
+}
+async function clearAllTrials(){
+  try{
+    const { error } = await db.from(TABLE).delete().neq('id','___never___');
+    if(error) throw error;
+  }catch(e){ toast('⚠ Clear failed'); console.error(e); }
+}
+
+/* ============ Helpers ============ */
+const $ = s => document.querySelector(s);
+const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num = v => { const n = parseFloat(v); return isNaN(n)?0:n; };
+function scrapRate(t){ return t.produced>0 ? (t.rejected/t.produced*100) : 0; }
+function fpy(t){ return t.produced>0 ? ((t.produced-t.rejected)/t.produced*100) : 0; }
+function scrapClass(r){ return r<=2?'scrap-good':r<=6?'scrap-mid':'scrap-bad'; }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._to); t._to=setTimeout(()=>t.classList.remove('show'),2400); }
+function fmt(n,d=1){ return Number(n).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}); }
+
+/* baseline = earliest-dated trial for a given part number */
+function baselineFor(part){
+  const same = trials.filter(t=>t.partNumber===part);
+  if(!same.length) return null;
+  return same.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''))[0];
+}
+
+/* ============ KPIs ============ */
+function renderKPIs(){
+  const total = trials.length;
+  const sorted = trials.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const latest = sorted[0];
+  const latestScrap = latest ? scrapRate(latest) : 0;
+  const rates = trials.filter(t=>t.produced>0).map(scrapRate);
+  const best = rates.length ? Math.min(...rates) : 0;
+  const avgFpy = trials.filter(t=>t.produced>0).reduce((s,t)=>s+fpy(t),0)/(rates.length||1);
+
+  // parts saved vs each part's baseline
+  let saved=0;
+  trials.forEach(t=>{
+    const base = baselineFor(t.partNumber);
+    if(base && base.id!==t.id && t.produced>0){
+      const gain = (scrapRate(base)-scrapRate(t))/100 * t.produced;
+      if(gain>0) saved += gain;
+    }
+  });
+
+  $('#kpiTotal').textContent = total;
+  $('#kpiLatest').textContent = total? fmt(latestScrap)+'%' : '—';
+  $('#kpiLatestSub').textContent = latest? esc(latest.partNumber||'—') : 'no trials yet';
+  $('#kpiBest').textContent = total? fmt(best)+'%' : '—';
+  $('#kpiFpy').textContent = total? fmt(avgFpy)+'%' : '—';
+  $('#kpiSaved').textContent = Math.round(saved).toLocaleString();
+}
+
+/* ============ Render ============ */
+function appShell(){
+  $('#app').innerHTML = `
+    <div class="kpis">
+      <div class="kpi k1"><span class="tick"></span><div class="lab">Trials logged</div><div class="val" id="kpiTotal">0</div><div class="sub">experiments recorded</div></div>
+      <div class="kpi k2"><span class="tick"></span><div class="lab">Latest scrap</div><div class="val" id="kpiLatest">—</div><div class="sub" id="kpiLatestSub">—</div></div>
+      <div class="kpi k3"><span class="tick"></span><div class="lab">Best scrap rate</div><div class="val" id="kpiBest">—</div><div class="sub">lowest achieved</div></div>
+      <div class="kpi k4"><span class="tick"></span><div class="lab">Avg first-pass yield</div><div class="val" id="kpiFpy">—</div><div class="sub">across all trials</div></div>
+      <div class="kpi k5"><span class="tick"></span><div class="lab">Good parts saved</div><div class="val" id="kpiSaved">0</div><div class="sub">vs part baseline</div></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="log">Trials Log</button>
+      <button class="tab" data-tab="analyze">Analysis</button>
+    </div>
+
+    <section id="tab-log">
+      <div class="panel hide" id="formPanel">
+        <div class="panel-h">
+          <h2>Record trial</h2>
+          <span class="editing-flag">✎ editing existing trial — <button class="btn ghost sm" id="cancelEdit" style="margin-left:6px">cancel</button></span>
+        </div>
+        ${formHTML()}
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <div class="panel-h">
+          <h2>Trial history</h2>
+          <div class="toolbar">
+            <input class="search" id="search" placeholder="Search part, change, notes…">
+            <select id="fPart"><option value="">All parts</option></select>
+            <select id="fStatus"><option value="">All status</option>${STATUSES.map(s=>`<option>${s}</option>`).join('')}</select>
+          </div>
+        </div>
+        <div id="tableArea"></div>
+      </div>
+    </section>
+
+    <section id="tab-analyze" class="hide"></section>
+  `;
+  // tab events
+  document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+  $('#newBtn').onclick = openNew;
+  $('#cancelEdit').onclick = cancelEdit;
+  $('#search').oninput = e=>{ search=e.target.value.toLowerCase(); renderTable(); };
+  $('#fPart').onchange = e=>{ filterPart=e.target.value; renderTable(); };
+  $('#fStatus').onchange = e=>{ filterStatus=e.target.value; renderTable(); };
+  bindForm();
+}
+
+function formHTML(){
+  return `
+  <form class="entry" id="entryForm" autocomplete="off">
+    <div class="grid">
+      <div class="field"><label>Date</label><input type="date" name="date" required></div>
+      <div class="field"><label>Part number / name</label><input name="partNumber" placeholder="e.g. SEAL-204-NBR" required></div>
+      <div class="field"><label>Compound</label><input name="compound" placeholder="e.g. NBR 70 Sh"></div>
+      <div class="field"><label>Mold / cavity</label><input name="moldCavity" placeholder="e.g. M3 / 8-cav"></div>
+
+      <div class="field"><label>Machine temp <span class="u">°C</span></label><input type="number" step="any" name="cureTempC" placeholder="170"></div>
+      <div class="field"><label>Mold temp <span class="u">°C</span></label><input type="number" step="any" name="moldTempC" placeholder="40"></div>
+      <div class="field"><label>Curing time <span class="u">sec</span></label><input type="number" step="any" name="cureTimeSec" placeholder="210"></div>
+      <div class="field"><label>Blank weight <span class="u">g</span></label><input type="number" step="any" name="preformWeightG" placeholder="70"></div>
+
+      <div class="field"><label>1st pressure <span class="u">bar</span></label><input type="number" step="any" name="pressureBar" placeholder="150"></div>
+      <div class="field"><label>2nd pressure <span class="u">bar</span></label><input type="number" step="any" name="pressureBar2" placeholder="120"></div>
+
+      <div class="field"><label>Parts produced</label><input type="number" name="produced" placeholder="0" id="fProduced"></div>
+      <div class="field"><label>Parts rejected</label><input type="number" name="rejected" placeholder="0" id="fRejected"></div>
+      <div class="field"><label>Primary defect</label><select name="defectType">${DEFECTS.map(d=>`<option>${d}</option>`).join('')}<option value="">— none —</option></select></div>
+      <div class="field"><label>Secondary defect</label><select name="defectType2"><option value="">— none —</option>${DEFECTS.map(d=>`<option>${d}</option>`).join('')}</select></div>
+      <div class="field"><label>Status</label><select name="status">${STATUSES.map(s=>`<option>${s}</option>`).join('')}</select></div>
+
+      <div class="field span2"><label>Change made / hypothesis</label><input name="changeMade" placeholder="e.g. raised cure temp +5°C, added bump cycle"></div>
+      <div class="field span2"><label>Operator / shift</label><input name="operatorShift" placeholder="e.g. A. Tan / Shift 2"></div>
+
+      <div class="field span4"><label>Notes / observations</label><textarea name="notes" placeholder="Result, side effects, next step…"></textarea></div>
+    </div>
+
+    <div class="cycles-sec">
+      <div class="cyc-head">
+        <div class="cyc-title">⟳ Cycle log <small>one row per press shot — actual temp, time, rejects &amp; a comment. Totals roll up automatically.</small></div>
+        <button type="button" class="btn ghost sm" id="addCycle">+ Add cycle</button>
+      </div>
+      <div class="cyc-labels">
+        <span>#</span><span>Temp °C</span><span>Time sec</span><span>Made</span><span>Rejects</span><span>Comment</span><span></span>
+      </div>
+      <div id="cycleRows"></div>
+      <div class="cyc-sum" id="cycSummary">No cycles added — using trial totals above.</div>
+    </div>
+    <div class="form-foot">
+      <button type="submit" class="btn amber" id="saveBtn">Save trial</button>
+      <button type="button" class="btn ghost" id="closeForm">Close</button>
+      <span class="calc" id="liveCalc">Scrap rate: <b>0.0%</b> · FPY <b>—</b></span>
+    </div>
+  </form>`;
+}
+
+function updateLiveCalc(){
+  const p=num($('#fProduced').value), r=num($('#fRejected').value);
+  const sr = p>0?(r/p*100):0, y=p>0?((p-r)/p*100):0;
+  $('#liveCalc').innerHTML = `Scrap rate: <b class="${scrapClass(sr)}">${fmt(sr)}%</b> · FPY <b>${p>0?fmt(y)+'%':'—'}</b>`;
+}
+
+function bindForm(){
+  const f = $('#entryForm');
+  f.onsubmit = onSubmit;
+  $('#closeForm').onclick = ()=>{ $('#formPanel').classList.add('hide'); cancelEdit(); };
+  $('#fProduced').oninput=updateLiveCalc;
+  $('#fRejected').oninput=updateLiveCalc;
+  $('#addCycle').onclick=()=>{ cycleDraft.push({tempC:'',timeSec:'',produced:'',rejected:'',comment:''}); renderCycleRows(); };
+}
+
+function renderCycleRows(){
+  const box=$('#cycleRows'); if(!box) return;
+  if(!cycleDraft.length){
+    box.innerHTML='<div class="cyc-empty">No cycles yet — add one per press shot, or just use the trial totals above.</div>';
+  } else {
+    box.innerHTML=cycleDraft.map((c,i)=>`
+      <div class="cyc-row" data-idx="${i}">
+        <span class="cyc-n">#${i+1}</span>
+        <input data-f="tempC" type="number" step="any" placeholder="°C" value="${esc(c.tempC)}">
+        <input data-f="timeSec" type="number" step="any" placeholder="sec" value="${esc(c.timeSec)}">
+        <input data-f="produced" type="number" placeholder="made" value="${esc(c.produced)}">
+        <input data-f="rejected" type="number" placeholder="rej" value="${esc(c.rejected)}">
+        <input data-f="comment" placeholder="comment for this cycle…" value="${esc(c.comment)}">
+        <button type="button" class="cyc-del" data-rm="${i}" title="Remove cycle">✕</button>
+      </div>`).join('');
+    box.querySelectorAll('.cyc-row').forEach(row=>{
+      const idx=+row.dataset.idx;
+      row.querySelectorAll('input[data-f]').forEach(inp=>{
+        inp.oninput=()=>{ cycleDraft[idx][inp.dataset.f]=inp.value; recomputeCycles(); };
+      });
+      row.querySelector('[data-rm]').onclick=()=>{ cycleDraft.splice(idx,1); renderCycleRows(); };
+    });
+  }
+  recomputeCycles();
+}
+
+function recomputeCycles(){
+  const fP=$('#fProduced'), fR=$('#fRejected'), sum=$('#cycSummary');
+  if(cycleDraft.length){
+    const totRej=cycleDraft.reduce((s,c)=>s+num(c.rejected),0);
+    const totMade=cycleDraft.reduce((s,c)=>s+num(c.produced),0);
+    const anyMade=cycleDraft.some(c=>num(c.produced)>0);
+    fR.value=totRej; fR.readOnly=true;
+    if(anyMade){ fP.value=totMade; fP.readOnly=true; }
+    else{ fP.readOnly=false; }
+    const temps=cycleDraft.map(c=>num(c.tempC)).filter(v=>v>0);
+    const times=cycleDraft.map(c=>num(c.timeSec)).filter(v=>v>0);
+    const avg=a=>a.length?(a.reduce((s,v)=>s+v,0)/a.length):0;
+    sum.innerHTML=`<b>${cycleDraft.length}</b> cycles · made <b>${anyMade?totMade:'(trial total)'}</b> · rejects <b>${totRej}</b>`
+      +(temps.length?` · avg temp <b>${fmt(avg(temps))}°C</b>`:'')
+      +(times.length?` · avg time <b>${fmt(avg(times))} sec</b>`:'')
+      +` · totals locked from cycles`;
+  } else {
+    fP.readOnly=false; fR.readOnly=false;
+    sum.textContent='No cycles added — using trial totals above.';
+  }
+  updateLiveCalc();
+}
+
+function openNew(){
+  editingId=null; document.body.classList.remove('is-editing');
+  $('#formPanel').classList.remove('hide');
+  const f=$('#entryForm'); f.reset();
+  f.date.value = new Date().toISOString().slice(0,10);
+  $('#saveBtn').textContent='Save trial';
+  $('#fProduced').readOnly=false; $('#fRejected').readOnly=false;
+  cycleDraft=[]; renderCycleRows();
+  $('#liveCalc').innerHTML='Scrap rate: <b>0.0%</b> · FPY <b>—</b>';
+  switchTab('log');
+  $('#formPanel').scrollIntoView({behavior:'smooth',block:'start'});
+  f.partNumber.focus();
+}
+
+function editTrial(id){
+  const t=trials.find(x=>x.id===id); if(!t) return;
+  editingId=id; document.body.classList.add('is-editing');
+  $('#formPanel').classList.remove('hide');
+  const f=$('#entryForm');
+  ['date','partNumber','compound','moldCavity','cureTempC','moldTempC','cureTimeSec','pressureBar','pressureBar2',
+   'preformWeightG','produced','rejected','defectType','defectType2','status','changeMade','operatorShift','notes']
+   .forEach(k=>{ if(f[k]!=null) f[k].value = t[k]!=null?t[k]:''; });
+  $('#saveBtn').textContent='Update trial';
+  cycleDraft = Array.isArray(t.cycles) ? t.cycles.map(c=>({
+    tempC:c.tempC??'', timeSec:c.timeSec??'', produced:c.produced??'', rejected:c.rejected??'', comment:c.comment??''
+  })) : [];
+  renderCycleRows();
+  const sr=scrapRate(t), y=fpy(t);
+  $('#liveCalc').innerHTML=`Scrap rate: <b class="${scrapClass(sr)}">${fmt(sr)}%</b> · FPY <b>${t.produced>0?fmt(y)+'%':'—'}</b>`;
+  switchTab('log');
+  $('#formPanel').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function cancelEdit(){
+  editingId=null; document.body.classList.remove('is-editing');
+  $('#entryForm').reset(); $('#saveBtn').textContent='Save trial';
+  $('#fProduced').readOnly=false; $('#fRejected').readOnly=false;
+  cycleDraft=[]; renderCycleRows();
+}
+
+async function onSubmit(e){
+  e.preventDefault();
+  const f=e.target, d=Object.fromEntries(new FormData(f).entries());
+
+  // clean cycles: keep rows that have any data
+  const cycles = cycleDraft
+    .map(c=>({tempC:c.tempC, timeSec:c.timeSec, produced:num(c.produced), rejected:num(c.rejected), comment:(c.comment||'').trim()}))
+    .filter(c=>c.tempC!==''||c.timeSec!==''||c.produced>0||c.rejected>0||c.comment);
+
+  let produced=num(d.produced), rejected=num(d.rejected);
+  if(cycles.length){
+    rejected = cycles.reduce((s,c)=>s+num(c.rejected),0);
+    const made = cycles.reduce((s,c)=>s+num(c.produced),0);
+    if(made>0) produced = made;   // else keep the manually-entered trial total
+  }
+
+  const rec={
+    id: editingId||uid(),
+    date:d.date, partNumber:(d.partNumber||'').trim(), compound:d.compound,
+    moldCavity:d.moldCavity, cureTempC:d.cureTempC, moldTempC:d.moldTempC, cureTimeSec:d.cureTimeSec,
+    pressureBar:d.pressureBar, pressureBar2:d.pressureBar2, preformWeightG:d.preformWeightG,
+    produced:produced, rejected:rejected, cycles:cycles,
+    defectType:d.defectType, defectType2:d.defectType2, status:d.status||'Planned',
+    changeMade:d.changeMade, operatorShift:d.operatorShift, notes:d.notes,
+    updatedAt:Date.now()
+  };
+  if(rec.rejected>rec.produced && rec.produced>0){ toast('⚠ Rejected can’t exceed produced'); return; }
+  let saved;
+  if(editingId){ const i=trials.findIndex(t=>t.id===editingId); trials[i]={...trials[i],...rec}; saved=trials[i]; toast('✓ Trial updated'); }
+  else{ rec.createdAt=Date.now(); trials.push(rec); saved=rec; toast('✓ Trial saved'); }
+  await upsertTrial(saved);
+  cancelEdit(); $('#formPanel').classList.add('hide');
+  refresh();
+}
+
+async function delTrial(id){
+  const t=trials.find(x=>x.id===id);
+  if(!confirm(`Delete trial for "${t?.partNumber||'this part'}" on ${t?.date||''}? This cannot be undone.`)) return;
+  await deleteTrial(id);
+  trials=trials.filter(x=>x.id!==id); refresh(); toast('Trial deleted');
+}
+
+/* ============ Table ============ */
+function renderTable(){
+  // populate part filter
+  const parts=[...new Set(trials.map(t=>t.partNumber).filter(Boolean))].sort();
+  const sel=$('#fPart'); const cur=filterPart;
+  sel.innerHTML='<option value="">All parts</option>'+parts.map(p=>`<option ${p===cur?'selected':''}>${esc(p)}</option>`).join('');
+
+  let rows=trials.slice();
+  if(filterPart) rows=rows.filter(t=>t.partNumber===filterPart);
+  if(filterStatus) rows=rows.filter(t=>t.status===filterStatus);
+  if(search) rows=rows.filter(t=>[t.partNumber,t.changeMade,t.notes,t.compound,t.defectType,t.operatorShift]
+      .some(v=>(v||'').toLowerCase().includes(search)));
+
+  rows.sort((a,b)=>{
+    let av,bv;
+    if(sortKey==='scrap'){av=scrapRate(a);bv=scrapRate(b);}
+    else if(sortKey==='cycles'){av=(a.cycles?.length||0);bv=(b.cycles?.length||0);}
+    else{av=a[sortKey];bv=b[sortKey];}
+    if(typeof av==='string'){av=(av||'').toLowerCase();bv=(bv||'').toLowerCase();}
+    else{av=num(av);bv=num(bv);}
+    return av<bv?-sortDir:av>bv?sortDir:0;
+  });
+
+  const area=$('#tableArea');
+  if(!trials.length){
+    area.innerHTML=`<div class="empty"><div class="big">No trials yet</div>
+      <p>Hit “+ New trial” to record your first compression run.</p></div>`; return;
+  }
+  if(!rows.length){ area.innerHTML=`<div class="empty"><div class="big">No matches</div><p>Adjust filters or search.</p></div>`; return; }
+
+  const arrow=k=> sortKey===k? `<span class="ar">${sortDir>0?'▲':'▼'}</span>`:'';
+  const cols=[['date','Date'],['partNumber','Part'],['cureTempC','Set °C'],['moldTempC','Mold °C'],['cureTimeSec','Set sec'],
+    ['pressureBar','bar 1/2'],['produced','Made'],['rejected','Rej'],['scrap','Scrap'],['cycles','Cyc'],
+    ['defectType','Top defect'],['status','Status'],['changeMade','Change made']];
+
+  area.innerHTML=`<div class="tbl-wrap"><table>
+    <thead><tr>${cols.map(c=>`<th data-k="${c[0]}">${c[1]}${arrow(c[0])}</th>`).join('')}<th></th></tr></thead>
+    <tbody>${rows.map(t=>rowHTML(t,cols.length+1)).join('')}</tbody></table></div>`;
+
+  area.querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.k; if(sortKey===k) sortDir*=-1; else{sortKey=k;sortDir=1;} renderTable();
+  });
+  area.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>editTrial(b.dataset.edit));
+  area.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>delTrial(b.dataset.del));
+  area.querySelectorAll('[data-exp]').forEach(b=>b.onclick=()=>{
+    const id=b.dataset.exp; expanded.has(id)?expanded.delete(id):expanded.add(id); renderTable();
+  });
+}
+
+function rowHTML(t,span){
+  const sr=scrapRate(t);
+  const base=baselineFor(t.partNumber);
+  let delta='';
+  if(base && base.id!==t.id && t.produced>0 && base.produced>0){
+    const diff=sr-scrapRate(base);
+    const cls=diff< -0.05?'up':diff>0.05?'down':'flat';
+    const arr=diff<-0.05?'▼':diff>0.05?'▲':'·';
+    delta=`<div class="delta ${cls}">${arr}${fmt(Math.abs(diff))} vs base</div>`;
+  }
+  const cyc=Array.isArray(t.cycles)?t.cycles:[];
+  const isOpen=expanded.has(t.id);
+  const cycCell = cyc.length
+    ? `<span class="exp-btn ${isOpen?'open':''}" data-exp="${t.id}"><span class="chev">▶</span>${cyc.length}</span>`
+    : `<span class="cyc-none">—</span>`;
+
+  const main=`<tr>
+    <td>${esc(t.date||'')}</td>
+    <td><span class="pn">${esc(t.partNumber||'')}</span>${t.compound?`<div style="color:var(--ink-faint);font-size:11px">${esc(t.compound)}</div>`:''}</td>
+    <td>${t.cureTempC||'—'}</td>
+    <td>${t.moldTempC||'—'}</td>
+    <td>${t.cureTimeSec||'—'}</td>
+    <td>${t.pressureBar||'—'}${t.pressureBar2?` / ${esc(t.pressureBar2)}`:''}</td>
+    <td>${t.produced||0}</td>
+    <td>${t.rejected||0}</td>
+    <td><span class="${scrapClass(sr)}" style="font-weight:600">${fmt(sr)}%</span>${delta}</td>
+    <td>${cycCell}</td>
+    <td class="txt">${esc(t.defectType||'—')}${t.defectType2?`<div style="color:var(--ink-faint);font-size:11px">+ ${esc(t.defectType2)}</div>`:''}</td>
+    <td><span class="pill st-${esc(t.status||'Planned')}">${esc(t.status||'Planned')}</span></td>
+    <td class="txt">${esc(t.changeMade||'')||'<span style="color:var(--ink-faint)">—</span>'}</td>
+    <td><div class="row-actions">
+      <button class="icon-btn" data-edit="${t.id}" title="Edit">✎</button>
+      <button class="icon-btn del" data-del="${t.id}" title="Delete">🗑</button>
+    </div></td>
+  </tr>`;
+
+  if(!(isOpen && cyc.length)) return main;
+
+  const detail=`<tr class="detail-row"><td colspan="${span}"><div class="detail-wrap">
+    <h4>Cycle log — ${esc(t.partNumber||'')} · ${esc(t.date||'')}</h4>
+    <table class="cyc-tbl">
+      <thead><tr><th>#</th><th>Temp °C</th><th>Time sec</th><th>Made</th><th>Rejects</th><th>Comment</th></tr></thead>
+      <tbody>${cyc.map((c,i)=>`<tr>
+        <td style="color:var(--amber-soft)">#${i+1}</td>
+        <td>${c.tempC!==''&&c.tempC!=null?esc(c.tempC):'—'}</td>
+        <td>${c.timeSec!==''&&c.timeSec!=null?esc(c.timeSec):'—'}</td>
+        <td>${num(c.produced)||'—'}</td>
+        <td class="${num(c.rejected)>0?'scrap-bad':''}" style="font-weight:600">${num(c.rejected)||0}</td>
+        <td class="cmt">${esc(c.comment||'')||'<span class="cyc-none">—</span>'}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+  </div></td></tr>`;
+  return main+detail;
+}
+
+/* ============ Analysis ============ */
+function renderAnalyze(){
+  const el=$('#tab-analyze');
+  if(!trials.length){
+    el.innerHTML=`<div class="panel"><div class="empty"><div class="big">Nothing to analyze yet</div>
+      <p>Record a few trials and the charts will populate automatically.</p></div></div>`; return;
+  }
+  el.innerHTML=`
+    <div class="charts">
+      <div class="panel chart-card full">
+        <h3>Scrap rate trend</h3>
+        <div class="chart-box tall"><canvas id="cTrend"></canvas></div>
+      </div>
+      <div class="panel chart-card">
+        <h3>Defect Pareto</h3>
+        <div class="chart-box"><canvas id="cPareto"></canvas></div>
+      </div>
+      <div class="panel chart-card">
+        <h3>Trial status mix</h3>
+        <div class="chart-box"><canvas id="cStatus"></canvas></div>
+      </div>
+      <div class="panel chart-card full">
+        <h3>Cure temperature vs scrap rate</h3>
+        <div class="chart-box"><canvas id="cScatter"></canvas></div>
+      </div>
+      <div class="panel insights chart-card full" id="insights"></div>
+    </div>`;
+  buildCharts(); buildInsights();
+}
+
+function gridColor(){return 'rgba(255,255,255,.06)';}
+function tickColor(){return '#97a6b6';}
+Chart.defaults.font.family="'IBM Plex Mono', monospace";
+Chart.defaults.font.size=11;
+Chart.defaults.color='#97a6b6';
+
+function buildCharts(){
+  Object.values(charts).forEach(c=>c&&c.destroy()); charts={};
+
+  // Trend: per part series, x = date
+  const byPart={};
+  trials.forEach(t=>{ (byPart[t.partNumber]=byPart[t.partNumber]||[]).push(t); });
+  const palette=['#ff9d2e','#46c7d4','#5bd6a0','#a78bfa','#ff6b6b','#7ec8ff','#ffb45c'];
+  const dsets=Object.entries(byPart).map(([part,arr],i)=>{
+    const pts=arr.filter(t=>t.produced>0).sort((a,b)=>(a.date||'').localeCompare(b.date||''))
+      .map(t=>({x:t.date,y:+scrapRate(t).toFixed(2)}));
+    const c=palette[i%palette.length];
+    return {label:part,data:pts,borderColor:c,backgroundColor:c,tension:.3,
+      pointRadius:4,pointHoverRadius:6,borderWidth:2,spanGaps:true};
+  }).filter(d=>d.data.length);
+
+  charts.trend=new Chart($('#cTrend'),{type:'line',
+    data:{datasets:dsets},
+    options:{responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'nearest',intersect:false},
+      scales:{
+        x:{type:'category',grid:{color:gridColor()},ticks:{color:tickColor()},
+           labels:[...new Set(trials.map(t=>t.date).filter(Boolean))].sort()},
+        y:{beginAtZero:true,grid:{color:gridColor()},ticks:{color:tickColor(),callback:v=>v+'%'},
+           title:{display:true,text:'Scrap rate %',color:tickColor()}}},
+      plugins:{legend:{labels:{color:'#e7edf3',usePointStyle:true,boxWidth:8}},
+        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y}%`}}}}});
+
+  // Pareto
+  const dcount={};
+  trials.forEach(t=>{ if(t.defectType && t.rejected>0){ dcount[t.defectType]=(dcount[t.defectType]||0)+num(t.rejected); }});
+  const dEntries=Object.entries(dcount).sort((a,b)=>b[1]-a[1]);
+  charts.pareto=new Chart($('#cPareto'),{type:'bar',
+    data:{labels:dEntries.map(e=>e[0]),
+      datasets:[{data:dEntries.map(e=>e[1]),
+        backgroundColor:dEntries.map((e,i)=>DEFECT_COLORS[i%DEFECT_COLORS.length]),
+        borderRadius:4}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      scales:{x:{grid:{color:gridColor()},ticks:{color:tickColor()},title:{display:true,text:'Rejected parts',color:tickColor()}},
+        y:{grid:{display:false},ticks:{color:tickColor(),font:{size:10}}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.parsed.x} rejects`}}}}});
+
+  // Status doughnut
+  const scount={}; STATUSES.forEach(s=>scount[s]=0);
+  trials.forEach(t=>{ scount[t.status]=(scount[t.status]||0)+1; });
+  const sLab=Object.keys(scount).filter(k=>scount[k]>0);
+  const sCol={Planned:'#647281',Running:'#46c7d4',Validated:'#5bd6a0',Implemented:'#ff9d2e',Rejected:'#ff6b6b'};
+  charts.status=new Chart($('#cStatus'),{type:'doughnut',
+    data:{labels:sLab,datasets:[{data:sLab.map(k=>scount[k]),
+      backgroundColor:sLab.map(k=>sCol[k]),borderColor:'#171c24',borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+      plugins:{legend:{position:'right',labels:{color:'#e7edf3',usePointStyle:true,boxWidth:8,padding:12}}}}});
+
+  // Scatter cure temp vs scrap
+  const pts=trials.filter(t=>t.cureTempC&&t.produced>0)
+    .map(t=>({x:num(t.cureTempC),y:+scrapRate(t).toFixed(2),part:t.partNumber}));
+  charts.scatter=new Chart($('#cScatter'),{type:'scatter',
+    data:{datasets:[{data:pts,backgroundColor:'#ff9d2e',borderColor:'#1a130a',
+      pointRadius:6,pointHoverRadius:8}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{x:{grid:{color:gridColor()},ticks:{color:tickColor(),callback:v=>v+'°'},
+        title:{display:true,text:'Cure temperature °C',color:tickColor()}},
+        y:{beginAtZero:true,grid:{color:gridColor()},ticks:{color:tickColor(),callback:v=>v+'%'},
+        title:{display:true,text:'Scrap rate %',color:tickColor()}}},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:c=>` ${c.raw.part}: ${c.raw.x}°C → ${c.raw.y}%`}}}}});
+}
+
+function buildInsights(){
+  const el=$('#insights'); const items=[];
+  // best improvement per part
+  const parts=[...new Set(trials.map(t=>t.partNumber).filter(Boolean))];
+  parts.forEach(p=>{
+    const arr=trials.filter(t=>t.partNumber===p&&t.produced>0)
+      .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    if(arr.length>=2){
+      const first=scrapRate(arr[0]), last=scrapRate(arr[arr.length-1]);
+      const diff=first-last;
+      if(Math.abs(diff)>=0.1){
+        const cls=diff>0?'ins-green':'ins-red';
+        const word=diff>0?'down':'up';
+        items.push(`<li><b>${esc(p)}</b> scrap moved <span class="${cls}">${word} ${fmt(Math.abs(diff))} pts</span> from baseline (${fmt(first)}% → ${fmt(last)}%) over ${arr.length} trials.</li>`);
+      }
+    }
+  });
+  // top defect overall
+  const dcount={};
+  trials.forEach(t=>{ if(t.defectType&&t.rejected>0) dcount[t.defectType]=(dcount[t.defectType]||0)+num(t.rejected); });
+  const top=Object.entries(dcount).sort((a,b)=>b[1]-a[1])[0];
+  if(top) items.push(`<li>Biggest reject driver overall: <b class="ins-amber">${esc(top[0])}</b> (${top[1]} parts). Target this first for the largest gain.</li>`);
+  // best & worst trial
+  const valid=trials.filter(t=>t.produced>0);
+  if(valid.length){
+    const best=valid.reduce((a,b)=>scrapRate(a)<scrapRate(b)?a:b);
+    items.push(`<li>Lowest-scrap run: <b>${esc(best.partNumber)}</b> at <span class="ins-green">${fmt(scrapRate(best))}%</span> — ${best.cureTempC||'?'}°C / ${best.cureTimeSec||'?'} sec / ${best.pressureBar||'?'} bar.${best.changeMade?` Change: <i>${esc(best.changeMade)}</i>`:''}</li>`);
+  }
+  // open experiments
+  const running=trials.filter(t=>t.status==='Running'||t.status==='Planned').length;
+  if(running) items.push(`<li>${running} trial${running>1?'s':''} still open (planned/running) — keep them moving to validation.</li>`);
+
+  el.innerHTML=`<b style="font-family:var(--disp);text-transform:uppercase;letter-spacing:.6px;font-size:14px">Auto insights</b>
+    <ul>${items.length?items.join(''):'<li>Log a few more trials per part to surface improvement trends.</li>'}</ul>`;
+}
+
+/* ============ Tabs / refresh ============ */
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+  $('#tab-log').classList.toggle('hide',name!=='log');
+  $('#tab-analyze').classList.toggle('hide',name!=='analyze');
+  if(name==='analyze') renderAnalyze();
+}
+function refresh(){ renderKPIs(); renderTable();
+  if(!$('#tab-analyze').classList.contains('hide')) renderAnalyze(); }
+
+/* ============ Export / reset ============ */
+function exportCSV(){
+  if(!trials.length){ toast('Nothing to export'); return; }
+  const cols=['date','partNumber','compound','moldCavity','cureTempC','moldTempC','cureTimeSec','pressureBar','pressureBar2',
+    'preformWeightG','produced','rejected','scrapRatePct','defectType','defectType2','status','changeMade','operatorShift','notes',
+    'cyclesCount','cycleLog'];
+  const lines=[cols.join(',')];
+  trials.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).forEach(t=>{
+    const cyc=Array.isArray(t.cycles)?t.cycles:[];
+    const cycleLog=cyc.map((c,i)=>`#${i+1} ${c.tempC||'?'}C/${c.timeSec||'?'}s made:${num(c.produced)} rej:${num(c.rejected)}${c.comment?' — '+c.comment:''}`).join(' | ');
+    const row=cols.map(c=>{
+      let v;
+      if(c==='scrapRatePct') v=scrapRate(t).toFixed(2);
+      else if(c==='cyclesCount') v=cyc.length;
+      else if(c==='cycleLog') v=cycleLog;
+      else v=(t[c]==null?'':t[c]);
+      v=String(v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
+    });
+    lines.push(row.join(','));
+  });
+  const blob=new Blob([lines.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='compression-trials-'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click(); URL.revokeObjectURL(a.href); toast('✓ CSV exported');
+}
+async function resetData(){
+  if(!trials.length){ toast('Already empty'); return; }
+  if(!confirm('Delete ALL trials from the shared database? This affects everyone and cannot be undone.')) return;
+  await clearAllTrials(); trials=[]; refresh(); toast('All data cleared');
+}
+
+/* ============ Setup screen (shown until connected) ============ */
+const SETUP_SQL =
+`create table if not exists trials (
+  id text primary key,
+  data jsonb not null,
+  updated_at timestamptz default now()
+);
+alter table trials enable row level security;
+create policy "team access" on trials
+  for all to anon, authenticated
+  using (true) with check (true);`;
+
+function renderSetup(){
+  const { url, key } = getCreds();
+  $('#app').innerHTML = `
+   <div class="panel" style="max-width:780px;margin:10px auto;padding:0">
+     <div class="panel-h"><h2>Connect to Supabase</h2><span class="hint">one-time setup</span></div>
+     <div style="padding:20px;line-height:1.7">
+       <p style="margin-top:0;color:var(--ink-dim)">This dashboard stores trials in your own Supabase database so your whole team shares one live dataset. Three quick steps:</p>
+       <p><b style="color:var(--amber-soft)">1.</b> Create a free project at <b>supabase.com</b>. Open the <b>SQL Editor</b>, paste this, and click <b>Run</b> — it creates the table the app needs:</p>
+       <pre style="background:var(--bg);border:1px solid var(--line2);border-radius:8px;padding:12px;overflow:auto;font-family:var(--mono);font-size:12px;color:var(--green);white-space:pre">${esc(SETUP_SQL)}</pre>
+       <p style="margin-top:16px"><b style="color:var(--amber-soft)">2.</b> Go to <b>Settings → API</b> and copy your <b>Project URL</b> and your <b>anon / publishable</b> key (the public one — safe in a browser).</p>
+       <p><b style="color:var(--amber-soft)">3.</b> Paste them below and connect:</p>
+       <div class="grid" style="grid-template-columns:1fr;gap:12px;max-width:520px">
+         <div class="field"><label>Project URL</label><input id="suUrl" placeholder="https://abcdxyz.supabase.co" value="${esc(url)}"></div>
+         <div class="field"><label>anon / publishable key</label><input id="suKey" placeholder="sb_publishable_… or eyJhbGci…" value="${esc(key)}"></div>
+       </div>
+       <div style="margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+         <button class="btn amber" id="suConnect">Connect &amp; load</button>
+         <span class="hint">Saved in this browser. For a permanent team deploy, fill the two constants at the top of the file instead.</span>
+       </div>
+     </div>
+   </div>`;
+  $('#suConnect').onclick=()=>{
+    const u=$('#suUrl').value.trim(), k=$('#suKey').value.trim();
+    if(!u||!k){ toast('Enter both URL and key'); return; }
+    localStorage.setItem('sb_url',u); localStorage.setItem('sb_key',k);
+    boot();
+  };
+}
+
+function markConnected(){
+  const p=document.querySelector('.titles p');
+  if(p) p.innerHTML='Compression molding · rubber parts · <span style="color:var(--green)">● live · Supabase</span>';
+}
+
+/* ============ Init ============ */
+async function boot(){
+  if(!initClient()){ renderSetup(); return; }
+  $('#app').innerHTML='<div class="loading">⟳ Connecting to Supabase…</div>';
+  await loadTrials();
+  appShell();
+  markConnected();
+  $('#exportBtn').onclick=exportCSV;
+  $('#resetBtn').onclick=resetData;
+  refresh();
+}
+boot();
+</script>
